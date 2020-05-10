@@ -1,8 +1,10 @@
 import pygame
+import pygame.gfxdraw
 import neat
 import time
 import os
 import random
+import math
 
 pygame.font.init()
 
@@ -167,9 +169,33 @@ def draw_window(win, birds, pipes, base, score):
     base.draw(win)
 
     for bird in birds:
+        draw_line(win, (bird.x + (bird.img.get_width() / 2), bird.y + (bird.img.get_height() / 2)), 
+        (pipes[len(pipes) - 1].x + (pipes[len(pipes) - 1].PIPE_TOP.get_width() / 2), pipes[len(pipes) - 1].top + pipes[len(pipes) - 1].PIPE_TOP.get_height()))
+        draw_line(win, (bird.x + (bird.img.get_width() / 2), bird.y + (bird.img.get_height() / 2)), 
+        (pipes[len(pipes) - 1].x + (pipes[len(pipes) - 1].PIPE_TOP.get_width() / 2), pipes[len(pipes) - 1].bottom))
         bird.draw(win) 
 
     pygame.display.update()
+
+def draw_line(win, start, end):
+    center_L1 = ((start[0] + end[0]) / 2, (start[1] + end[1]) / 2)
+
+    length = math.sqrt(math.pow((end[0] - start[0]), 2) + math.pow((end[1] - start[1]), 2)) # Line size
+    thickness = 4
+    angle = math.atan2(start[1] - end[1], start[0] - end[0])
+
+    UL = (center_L1[0] + (length / 2.) * math.cos(angle) - (thickness / 2.) * math.sin(angle),
+      center_L1[1] + (thickness / 2.) * math.cos(angle) + (length / 2.) * math.sin(angle))
+    UR = (center_L1[0] - (length / 2.) * math.cos(angle) - (thickness / 2.) * math.sin(angle),
+        center_L1[1] + (thickness / 2.) * math.cos(angle) - (length / 2.) * math.sin(angle))
+    BL = (center_L1[0] + (length / 2.) * math.cos(angle) + (thickness / 2.) * math.sin(angle),
+        center_L1[1] - (thickness / 2.) * math.cos(angle) + (length / 2.) * math.sin(angle))
+    BR = (center_L1[0] - (length / 2.) * math.cos(angle) + (thickness / 2.) * math.sin(angle),
+        center_L1[1] - (thickness / 2.) * math.cos(angle) - (length / 2.) * math.sin(angle))
+
+    pygame.gfxdraw.aapolygon(win, (UL, UR, BR, BL), (200, 0, 0 ))
+    pygame.gfxdraw.filled_polygon(win, (UL, UR, BR, BL), (200, 0, 0 ))
+
 
 def main(genomes, config):
     nets = []
@@ -185,14 +211,14 @@ def main(genomes, config):
 
 
     base = Base(730)
-    pipes = [Pipe(600)]
+    pipes = [Pipe(700)]
     score = 0
 
     win = pygame.display.set_mode((WIN_WIDTH, WIN_HEIGHT))
     clock = pygame.time.Clock()
 
     run = True
-    while run:
+    while run and len(birds) > 0:
         clock.tick(30)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -201,12 +227,8 @@ def main(genomes, config):
                 quit()
             
         pipe_ind = 0
-        if len(birds) > 0:
-            if len(pipes) > 1 and birds[0].x > pipes[0].x + pipes[0].PIPE_TOP.get_width():
-                pipe_ind = 1
-        else:
-            run = False
-            break
+        if len(pipes) > 1 and birds[0].x > pipes[0].x + pipes[0].PIPE_TOP.get_width():
+            pipe_ind = 1
 
         for x, bird in enumerate(birds):
             bird.move()
